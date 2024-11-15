@@ -41,6 +41,36 @@ def find():
             idx = lastidx
         # Пометка найденной строки красным цветом
         txtView.tag_config('found', foreground='red')
+def get_text_coord(s: str, i: int):
+    """
+    Из индекса символа получить "координату" в виде "номер_строки_текста.номер_символа_в_строке"
+    """
+    for row_number, line in enumerate(s.splitlines(keepends=True), 1):
+        if i < len(line):
+            return f'{row_number}.{i}'
+        
+        i -= len(line)
+
+
+def on_edit(event):
+    # Удалить все имеющиеся теги из текста
+    for tag in text1.tag_names():
+        text1.tag_remove(tag, 1.0, tk.END)
+    
+    # Разобрать текст на токены
+    s = text1.get(1.0, tk.END)
+    tokens = lexer.get_tokens_unprocessed(s)
+    
+    for i, token_type, token in tokens:
+        print(i, token_type, repr(token))  # Отладочный вывод - тут видно какие типы токенов выдаются
+        j = i + len(token)
+        if token_type in token_type_to_tag:
+            text1.tag_add(token_type_to_tag[token_type], get_text_coord(s, i), get_text_coord(s, j))
+
+    # Сбросить флаг редактирования текста
+    text1.edit_modified(0)
+
+
 
 #сохранение текстового файла
 '''def save_to_file():
@@ -61,8 +91,77 @@ def find():
 #создание окна
 lexer = PythonLexer()
 root = Tk()
+# Тэги
+text1.tag_config("loops", foreground='#FF051D')
+text1.tag_config("imports", foreground='green')
+text1.tag_config("if_else", foreground='#8B00FF')
+text1.tag_config("brackets", foreground='#1F75FE')
+text1.tag_config("operators",foreground="#0095B6")
+text1.tag_config("basic", foreground='black')
+text1.tag_config("string", foreground='#CC5500')
+text1.tag_config("int", foreground='#6600FF')
+text1.tag_config("functions", foreground='#A9AD00')
 
+# Словари с ключевыми словами
+imports = ["import","from","as"]
+loops = ["for","while","break","continue","range"]
+if_else = ["if","elif","else","True","False"]
+brackets = ["(",")","[","]","{","}"]
+operators = ["in","=","==",">=","<=","!=","+=","-=",
+"*=","/=","%=","//=","**=","|=","^=",">>=","<<=","&=","def"]
+functions = ["print","input","int","str","bool","float"]
+def checking():
+    
 
+    def replace_char(string,chars,separators):  
+        for i in chars:
+            string = string.replace(i,f"{separators}{i}{separators}")
+
+        return string
+
+    for i in text.tag_names(): # Очищаем тэги
+        text.tag_remove(i,1.0,tk.END)
+   
+    a = text.get(1.0,tk.END)
+    chars = [" ","\n","(",")","[","]","{","}",":",","]
+    a = replace_char(a,chars,"⠀")
+    a = a.split("⠀") 
+    ''' Далее разбиваем строку по невидимым символам 
+    (но этот вариант с невидимкой или другим любым символом не очень, 
+    ведь его могут ввести в качестве строки в коде) и  ещё текст ткинтера его не различает'''
+
+    text.delete(1.0,tk.END) # Очищаем текстовое поле
+    
+    # Проводим цикл по всем элементам списка
+    for i in a:
+        
+
+        if i in loops: # Проверка по категориям 
+            text.insert(tk.END,i,'loops')
+
+        elif i in imports:   
+            text.insert(tk.END,i,'imports') 
+
+        elif i in if_else:   
+            text.insert(tk.END,i,'if_else') 
+
+        elif i in brackets:   
+            text.insert(tk.END,i,'brackets')
+
+        elif i in operators:   
+            text.insert(tk.END,i,'operators') 
+
+        elif i.startswith("'") and i.endswith("'") or i.startswith('"') and i.endswith('"'):
+            text.insert(tk.END,i,'string') 
+
+        elif i.isdigit():
+            text.insert(tk.END,i,'int') 
+
+        elif i in functions:
+            text.insert(tk.END,i,'functions') 
+
+        else:
+            text.insert(tk.END,i,"basic")
 
 root.geometry ("600x600")
 root.title("notebook")
@@ -98,8 +197,7 @@ txtView.pack(side=LEFT, fill=BOTH)
 text = Text(root)
 text.insert( '1.0' , '''Type your text here''' )
 text.pack(side = BOTTOM)
-from tkinter import *
-text1 = tk.Text(root)
+text1 = Text(root)
 text1.pack()
 # создание окна
 
@@ -128,35 +226,12 @@ token_type_to_tag = {
 }
 
 
-def get_text_coord(s: str, i: int):
-    """
-    Из индекса символа получить "координату" в виде "номер_строки_текста.номер_символа_в_строке"
-    """
-    for row_number, line in enumerate(s.splitlines(keepends=True), 1):
-        if i < len(line):
-            return f'{row_number}.{i}'
-        
-        i -= len(line)
-
-
-def on_edit(event):
-    # Удалить все имеющиеся теги из текста
-    for tag in text.tag_names():
-        text.tag_remove(tag, 1.0, tk.END)
-    
-    # Разобрать текст на токены
-    s = text1.get(1.0, tk.END)
-    tokens = lexer.get_tokens_unprocessed(s)
-    
-    for i, token_type, token in tokens:
-        print(i, token_type, repr(token))  # Отладочный вывод - тут видно какие типы токенов выдаются
-        j = i + len(token)
-        if token_type in token_type_to_tag:
-            text1.tag_add(token_type_to_tag[token_type], get_text_coord(s, i), get_text_coord(s, j))
-
-    # Сбросить флаг редактирования текста
-    text1.edit_modified(0)
-
+#0 Token.Comment.Single '# Комментарий'
+#13 Token.Text '\n'
+#text.tag_config("comment", foreground='gray')
+'''token_type_to_tag = {
+    ...
+    Token.Comment.Single: "comment",'''
 
 text_info = Text (root, yscrollcommand=Scrollbar.set)
 text_info.pack(fill=BOTH)
